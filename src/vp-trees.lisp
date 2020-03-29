@@ -90,8 +90,8 @@ the @c(list)."
                               median)))
             (make-vp-node :center center
                           :radius median
-                          :inner (make-vp-tree inner-set distance key)
-                          :outer (make-vp-tree outer-set distance key)))))))
+                          :inner (make-vp-tree inner-set distance :key key)
+                          :outer (make-vp-tree outer-set distance :key key)))))))
 
 (defun search-close (tree item threshold distance
                      &key (key #'identity))
