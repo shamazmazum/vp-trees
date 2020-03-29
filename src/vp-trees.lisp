@@ -64,7 +64,7 @@ list with this value removed."
   (and (null (vp-node-inner node))
        (null (vp-node-outer node))))
 
-(defun make-vp-tree (list distance &optional (key #'identity))
+(defun make-vp-tree (list distance &key (key #'identity))
   "Make vantage point tree from a set @c(list) using a distance
 function @c(distance). Optional @c(key) function can be specified as a
 mapping between elements in @c(list) and elements in your metric
@@ -94,7 +94,7 @@ the @c(list)."
                           :outer (make-vp-tree outer-set distance key)))))))
 
 (defun search-close (tree item threshold distance
-                     &optional (key #'identity))
+                     &key (key #'identity))
   "Find all items in the tree @c(tree) closer to @c(item) than
 @c(threshold). @c(item) and elements of the tree must belong to a
 metric space with @c(distance) as a metric function. Optional @c(key)
