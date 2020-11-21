@@ -1,6 +1,7 @@
 vp-trees
 ========
 [![Build Status](https://api.cirrus-ci.com/github/shamazmazum/vp-trees.svg)](https://cirrus-ci.com/github/shamazmazum/vp-trees)
+![CI](https://github.com/shamazmazum/vp-trees/workflows/CI/badge.svg)
 
 **vp-trees** is an implementation of vantage point tree data structure
 in Common Lisp. It allows to perform fast (O(log N) in the best case)
