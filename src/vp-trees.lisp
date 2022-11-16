@@ -1,5 +1,8 @@
 (in-package :vp-trees)
 
+(sera:-> divide-list
+         (list (sera:-> (t) (values boolean &optional)))
+         (values list list &optional))
 (defun divide-list (list predicate)
   "Divide a set in two halves depending on the value of predicate
 function"
@@ -34,6 +37,9 @@ function"
            (median right-set (1+ nleft-upd) nright))
           (t first))))))
 
+(sera:-> pick-random
+         (list)
+         (values t list &optional))
 (defun pick-random (list)
   "Pick a random value from a list and return this value and a new
 list with this value removed."
@@ -48,22 +54,26 @@ list with this value removed."
                       (1+ n))))))
       (pick-random% list nil 0))))
 
-(defstruct (vp-node
-             (:print-function
-              (lambda (p s k)
-                (declare (ignore k))
-                (print-unreadable-object (p s :identity t)
-                  (format s "VP-tree")))))
-  center
-  (radius 0  :type number)
-  (inner nil :type (or null vp-node))
-  (outer nil :type (or null vp-node)))
+(sera:defconstructor vp-node
+  (center t)
+  (radius (real 0))
+  (inner  (or vp-node null))
+  (outer  (or vp-node null)))
 
+(sera:-> vp-node-leaf-p
+         (vp-node)
+         (values boolean &optional))
 (defun vp-node-leaf-p (node)
   "True if this node is a leaf"
   (and (null (vp-node-inner node))
        (null (vp-node-outer node))))
 
+(deftype metric ()
+  '(sera:-> (t t) (values (real 0) &optional)))
+
+(sera:-> make-vp-tree
+         (list metric &key (:key function))
+         (values vp-node &optional))
 (defun make-vp-tree (list distance &key (key #'identity))
   "Make vantage point tree from a set @c(list) using a distance
 function @c(distance). Optional @c(key) function can be specified as a
@@ -71,7 +81,7 @@ mapping between elements in @c(list) and elements in your metric
 space, so @c(ρ(x,y) = distance (key(x), key(y))) where x and y are in
 the @c(list)."
   (if (<= (length list) 1)
-      (make-vp-node :center (first list))
+      (vp-node (first list) 0 nil nil)
       (multiple-value-bind (center rest)
           (pick-random list)
         (let ((median (median
@@ -88,11 +98,13 @@ the @c(list)."
                                        (funcall key center)
                                        (funcall key x))
                               median)))
-            (make-vp-node :center center
-                          :radius median
-                          :inner (make-vp-tree inner-set distance :key key)
-                          :outer (make-vp-tree outer-set distance :key key)))))))
+            (vp-node center median
+                     (make-vp-tree inner-set distance :key key)
+                     (make-vp-tree outer-set distance :key key)))))))
 
+(sera:-> search-close
+         (vp-node t (real 0) metric &key (:key function))
+         (values list &optional))
 (defun search-close (tree item threshold distance
                      &key (key #'identity))
   "Find all items in the tree @c(tree) closer to @c(item) than
@@ -103,23 +115,23 @@ the following way: @c(ρ(x,y) = distance (key(x), key(y)))."
   (let (acc)
     (labels ((do-search% (subtree)
                (let ((center (vp-node-center subtree)))
-                 (if (not (null center))
-                     (let ((item-center-dist (funcall distance
-                                                      (funcall key item)
-                                                      (funcall key center))))
-                       (if (<= item-center-dist threshold)
-                           (push center acc))
-                       (if (not (vp-node-leaf-p subtree))
-                           (let* ((radius (vp-node-radius subtree))
-                                  (min-thr (- radius threshold))
-                                  (max-thr (+ radius threshold)))
-                             (cond
-                               ((< item-center-dist min-thr)
-                                (do-search% (vp-node-inner subtree)))
-                               ((> item-center-dist max-thr)
-                                (do-search% (vp-node-outer subtree)))
-                               (t
-                                (do-search% (vp-node-inner subtree))
-                                (do-search% (vp-node-outer subtree)))))))))))
+                 (unless (null center)
+                   (let ((item-center-dist (funcall distance
+                                                    (funcall key item)
+                                                    (funcall key center))))
+                     (when (<= item-center-dist threshold)
+                       (push center acc))
+                     (unless (vp-node-leaf-p subtree)
+                       (let* ((radius (vp-node-radius subtree))
+                              (min-thr (- radius threshold))
+                              (max-thr (+ radius threshold)))
+                         (cond
+                           ((< item-center-dist min-thr)
+                            (do-search% (vp-node-inner subtree)))
+                           ((> item-center-dist max-thr)
+                            (do-search% (vp-node-outer subtree)))
+                           (t
+                            (do-search% (vp-node-inner subtree))
+                            (do-search% (vp-node-outer subtree)))))))))))
       (do-search% tree))
     acc))
