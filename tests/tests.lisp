@@ -23,8 +23,6 @@
            +median-delta+))))
 
 ;; Test VP trees in R^2[0,1] space
-(defconstant +vp-count+ 100000)
-(defconstant +vp-radius+ 0.1)
 (defun gen-point ()
   (vector (random 1.0)
           (random 1.0)))
@@ -39,12 +37,22 @@
                 a b))))
 
 (test vp-test
-  (let* ((data (gen-points +vp-count+))
+  (let* ((count  100000)
+         (radius 0.1)
+
+         (data (gen-points count))
          (tree (make-vp-tree data #'dist))
          (point (gen-point))
          (naive-search (remove-if-not
-                        (lambda (x) (<= (dist x point) +vp-radius+))
+                        (lambda (x) (<= (dist x point) radius))
                         data))
-         (vp-search (search-close tree point +vp-radius+ #'dist)))
-    (is-true (and (subsetp naive-search vp-search :test #'equal)
-                  (subsetp vp-search naive-search :test #'equal)))))
+         (vp-search (search-close tree point radius #'dist)))
+    (is-true (and (subsetp naive-search vp-search)
+                  (subsetp vp-search naive-search)))))
+
+;; Other tests
+(test flatten
+  (let* ((data (gen-points 100))
+         (flat (flatten (make-vp-tree data #'dist))))
+    (is-true (and (subsetp data flat)
+                  (subsetp flat data)))))

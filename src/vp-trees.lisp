@@ -113,9 +113,9 @@ metric space with @c(distance) as a metric function. Optional @c(key)
 function can be used to calculate a distance between two objects in
 the following way: @c(ρ(x,y) = distance (key(x), key(y)))."
   (let (acc)
-    (labels ((do-search% (subtree)
+    (labels ((%search (subtree)
                (let ((center (vp-node-center subtree)))
-                 (unless (null center)
+                 (when center
                    (let ((item-center-dist (funcall distance
                                                     (funcall key item)
                                                     (funcall key center))))
@@ -127,11 +127,26 @@ the following way: @c(ρ(x,y) = distance (key(x), key(y)))."
                               (max-thr (+ radius threshold)))
                          (cond
                            ((< item-center-dist min-thr)
-                            (do-search% (vp-node-inner subtree)))
+                            (%search (vp-node-inner subtree)))
                            ((> item-center-dist max-thr)
-                            (do-search% (vp-node-outer subtree)))
+                            (%search (vp-node-outer subtree)))
                            (t
-                            (do-search% (vp-node-inner subtree))
-                            (do-search% (vp-node-outer subtree)))))))))))
-      (do-search% tree))
+                            (%search (vp-node-inner subtree))
+                            (%search (vp-node-outer subtree)))))))))))
+      (%search tree))
     acc))
+
+(sera:-> flatten (vp-node) (values list &optional))
+(defun flatten (tree)
+  "Deconstruct VP tree back into list. The order of elements in the
+original list is not preserved."
+  (let (list)
+    (labels ((%flatten! (node)
+               (let ((center (vp-node-center node)))
+                 (when center
+                   (push center list)
+                   (unless (vp-node-leaf-p node)
+                     (%flatten! (vp-node-inner node))
+                     (%flatten! (vp-node-outer node)))))))
+      (%flatten! tree))
+    list))
