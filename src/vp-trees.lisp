@@ -58,10 +58,7 @@ list with this value removed."
      (:print-function
       (lambda (object stream depth)
         (declare (ignore depth))
-        (print-unreadable-object (object stream :type t :identity t)
-          (format stream "CENTER: ~a RADIUS: ~a"
-                  (vp-node-center object)
-                  (vp-node-radius object))))))
+        (print-unreadable-object (object stream :type t :identity t)))))
   (center :type t)
   (radius :type (real 0))
   (inner  :type (or vp-node null))
