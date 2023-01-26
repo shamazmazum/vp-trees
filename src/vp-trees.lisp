@@ -15,15 +15,14 @@ function"
      list)
     (values left right)))
 
-(defun median (list &optional (nleft 0) (nright 0) (key #'identity))
+(defun median (list &optional (nleft 0) (nright 0))
   "Return median value for a list"
   (destructuring-bind (first . rest)
       list
     (multiple-value-bind (left-set right-set)
         (divide-list
          rest
-         (lambda (x) (< (funcall key x)
-                        (funcall key first))))
+         (lambda (x) (< x first)))
       (let* ((n-left-set  (length left-set))
              (n-right-set (length right-set))
              (nleft-upd  (+ nleft  n-left-set))
