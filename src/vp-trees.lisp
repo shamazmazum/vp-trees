@@ -161,3 +161,36 @@ original list is not preserved."
                      (%flatten! (vp-node-outer node)))))))
       (%flatten! tree))
     list))
+
+(sera:-> nearest-neighbor (vp-node t metric &key (:key function))
+         (values t real &optional))
+(defun nearest-neighbor (tree item distance &key (key #'identity))
+  "Return element in the @c(tree) which is the closest element to
+@c(item). @c(item) and elements of the tree must belong to a metric
+space with @c(distance) as a metric function. Optional @c(key)
+function can be used to calculate a distance between two objects in
+the following way: @c(ρ(x,y) = distance (key(x), key(y)))."
+  (let ((current-dist ff:single-float-positive-infinity)
+        current-best)
+    (labels ((%search (subtree)
+               (let ((center (vp-node-center subtree)))
+                 (when center
+                   (let ((item-center-dist (funcall distance
+                                                    (funcall key item)
+                                                    (funcall key center))))
+                     (when (< item-center-dist current-dist)
+                       (setq current-dist item-center-dist
+                             current-best center))
+                     (unless (vp-node-leaf-p subtree)
+                       (let* ((radius (vp-node-radius subtree))
+                              (min-thr (- radius current-dist))
+                              (max-thr (+ radius current-dist)))
+                         (when (< item-center-dist min-thr)
+                           (%search (vp-node-inner subtree)))
+                         (when (> item-center-dist max-thr)
+                           (%search (vp-node-outer subtree)))
+                         (when (< min-thr item-center-dist max-thr)
+                           (%search (vp-node-inner subtree))
+                           (%search (vp-node-outer subtree))))))))))
+      (%search tree)
+      (values current-best current-dist))))

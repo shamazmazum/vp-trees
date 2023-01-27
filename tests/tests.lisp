@@ -36,7 +36,15 @@
            (map 'vector (lambda (x y) (expt (- x y) 2))
                 a b))))
 
-(test vp-test
+(defun nn (list item)
+  (let (current-best (current-dist 1000000))
+    (loop for x in list do
+          (when (< (dist item x) current-dist)
+            (setq current-best x
+                  current-dist (dist item x))))
+    (values current-best current-dist)))
+
+(test elements-in-ball
   (let* ((count  100000)
          (radius 0.1)
 
@@ -49,6 +57,19 @@
          (vp-search (search-close tree point radius #'dist)))
     (is-true (and (subsetp naive-search vp-search)
                   (subsetp vp-search naive-search)))))
+
+(test nearest-neighbor
+  (let* ((count  100000)
+
+         (data (gen-points count))
+         (tree (make-vp-tree data #'dist))
+         (point (gen-point)))
+    (multiple-value-bind (naive-best naive-dist)
+        (nn data point)
+      (multiple-value-bind (vp-best vp-dist)
+          (nearest-neighbor tree point #'dist)
+        (is (equalp naive-best vp-best))
+        (is (= naive-dist vp-dist))))))
 
 ;; Other tests
 (test flatten
