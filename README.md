@@ -29,7 +29,7 @@ Then introduce a metric on this space (usual Euclidean metric):
                 a b))))
 ```
 
-Build a tree consisting of 1000000 elements in ℝ²[0, 1]:
+Build a tree consisting of 1000000 items in ℝ²[0, 1]:
 
 ``` lisp
 (defparameter *tree*
@@ -39,7 +39,7 @@ Build a tree consisting of 1000000 elements in ℝ²[0, 1]:
 Now return points which are closer than `0.1` to the origin:
 
 ``` lisp
-(vp-trees:search-close *tree* #(0.0 0.0) 0.1 #'dist)
+(vp-trees:items-in-ball *tree* #(0.0 0.0) 0.1 #'dist)
 ```
 
 The advantage of VP trees is that you don't have to stick to Euclidean
@@ -50,7 +50,8 @@ multidimensional spaces.
 ## API list
 
 ~~~~
-    make-vp-tree
-    flatten
-    search-close
+make-vp-tree
+flatten
+items-in-ball
+nearest-neighbor
 ~~~~

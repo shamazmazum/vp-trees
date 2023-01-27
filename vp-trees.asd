@@ -1,6 +1,6 @@
 (defsystem :vp-trees
     :name :vp-trees
-    :version "0.1"
+    :version "1.0"
     :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
     :description "Perceptual hash algorithms for images"
     :license "2-clause BSD"
@@ -18,7 +18,7 @@
 
 (defsystem :vp-trees/tests
     :name :vp-trees/tests
-    :version "0.1"
+    :version "1.0"
     :author "Vasily Postnicov <shamaz.mazum@gmail.com>"
     :license "2-clause BSD"
     :components ((:file "tests/package")

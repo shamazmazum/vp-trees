@@ -113,11 +113,11 @@ the @c(list)."
                      (make-vp-tree inner-set distance :key key)
                      (make-vp-tree outer-set distance :key key)))))))
 
-(sera:-> search-close
+(sera:-> items-in-ball
          (vp-node t (real 0) metric &key (:key function))
          (values list &optional))
-(defun search-close (tree item threshold distance
-                     &key (key #'identity))
+(defun items-in-ball (tree item threshold distance
+                      &key (key #'identity))
   "Find all items in the tree @c(tree) closer to @c(item) than
 @c(threshold). @c(item) and elements of the tree must belong to a
 metric space with @c(distance) as a metric function. Optional @c(key)

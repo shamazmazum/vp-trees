@@ -44,7 +44,7 @@
                   current-dist (dist item x))))
     (values current-best current-dist)))
 
-(test elements-in-ball
+(test items-in-ball
   (let* ((count  100000)
          (radius 0.1)
 
@@ -54,7 +54,7 @@
          (naive-search (remove-if-not
                         (lambda (x) (<= (dist x point) radius))
                         data))
-         (vp-search (search-close tree point radius #'dist)))
+         (vp-search (items-in-ball tree point radius #'dist)))
     (is-true (and (subsetp naive-search vp-search)
                   (subsetp vp-search naive-search)))))
 

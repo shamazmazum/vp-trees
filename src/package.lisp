@@ -5,5 +5,5 @@
   (:export #:vp-node
            #:make-vp-tree
            #:flatten
-           #:search-close
+           #:items-in-ball
            #:nearest-neighbor))
