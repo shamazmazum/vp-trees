@@ -44,36 +44,38 @@
                   current-dist (dist item x))))
     (values current-best current-dist)))
 
-(test items-in-ball
-  (let* ((count  100000)
-         (radius 0.1)
+(test find
+  (loop with count  = 100000
+        with radius = 0.1
+        repeat 30
+        for data   = (gen-points count)
+        for tree   = (vp-trees:make-vp-tree data #'dist)
+        for point  = (gen-point)
 
-         (data (gen-points count))
-         (tree (make-vp-tree data #'dist))
-         (point (gen-point))
-         (naive-search (remove-if-not
-                        (lambda (x) (<= (dist x point) radius))
-                        data))
-         (vp-search (items-in-ball tree point radius #'dist)))
-    (is-true (and (subsetp naive-search vp-search)
-                  (subsetp vp-search naive-search)))))
+        for naive-search = (remove-if-not
+                            (lambda (x) (<= (dist x point) radius))
+                            data)
+        for vp-search = (vp-trees:find tree point radius #'dist) do
+        (is-true (and (subsetp naive-search vp-search)
+                      (subsetp vp-search naive-search)))))
 
 (test nearest-neighbor
-  (let* ((count  100000)
-
-         (data (gen-points count))
-         (tree (make-vp-tree data #'dist))
-         (point (gen-point)))
-    (multiple-value-bind (naive-best naive-dist)
-        (nn data point)
-      (multiple-value-bind (vp-best vp-dist)
-          (nearest-neighbor tree point #'dist)
-        (is (equalp naive-best vp-best))
-        (is (= naive-dist vp-dist))))))
+  (loop with count = 100000
+        repeat 30
+        for data  = (gen-points count)
+        for tree  = (vp-trees:make-vp-tree data #'dist)
+        for point = (gen-point) do
+        (multiple-value-bind (naive-best naive-dist)
+            (nn data point)
+          (multiple-value-bind (vp-best vp-dist)
+              (vp-trees:nearest-neighbor tree point #'dist)
+            (is (equalp naive-best vp-best))
+            (is (= naive-dist vp-dist))))))
 
 ;; Other tests
 (test flatten
   (let* ((data (gen-points 100))
-         (flat (flatten (make-vp-tree data #'dist))))
+         (flat (vp-trees:flatten
+                (vp-trees:make-vp-tree data #'dist))))
     (is-true (and (subsetp data flat)
                   (subsetp flat data)))))

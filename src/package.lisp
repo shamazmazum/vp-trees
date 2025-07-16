@@ -2,8 +2,9 @@
   (:use #:cl)
   (:local-nicknames (#:sera #:serapeum)
                     (#:ff   #:float-features))
+  (:shadow #:find)
   (:export #:vp-node
            #:make-vp-tree
            #:flatten
-           #:items-in-ball
+           #:find
            #:nearest-neighbor))
