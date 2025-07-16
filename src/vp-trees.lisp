@@ -58,18 +58,12 @@ list with this value removed."
      (:print-function
       (lambda (object stream depth)
         (declare (ignore depth))
-        (print-unreadable-object (object stream :type t :identity t)))))
+        (print-unreadable-object (object stream :type t :identity t))))
+     (:constructor vp-node (center radius inner outer)))
   (center :type t)
   (radius :type (real 0))
   (inner  :type (or vp-node null))
   (outer  :type (or vp-node null)))
-
-(declaim (inline vp-node))
-(defun vp-node (center radius inner outer)
-  (make-vp-node :center center
-                :radius radius
-                :inner  inner
-                :outer  outer))
 
 (sera:-> vp-node-leaf-p
          (vp-node)
