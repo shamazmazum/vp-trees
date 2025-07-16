@@ -119,9 +119,9 @@ the following way: @c(ρ(x,y) = distance (key(x), key(y)))."
     (labels ((%search (subtree)
                (let ((center (vp-node-center subtree)))
                  (when center
-                   (let ((item-center-dist (funcall distance
-                                                    (funcall key item)
-                                                    (funcall key center))))
+                   (let ((item-center-dist
+                          (funcall distance item
+                                   (funcall key center))))
                      (when (<= item-center-dist threshold)
                        (push center acc))
                      (unless (vp-node-leaf-p subtree)
@@ -167,9 +167,9 @@ the following way: @c(ρ(x,y) = distance (key(x), key(y)))."
     (labels ((%search (subtree)
                (let ((center (vp-node-center subtree)))
                  (when center
-                   (let ((item-center-dist (funcall distance
-                                                    (funcall key item)
-                                                    (funcall key center))))
+                   (let ((item-center-dist
+                          (funcall distance item
+                                   (funcall key center))))
                      (when (< item-center-dist current-dist)
                        (setq current-dist item-center-dist
                              current-best center))
