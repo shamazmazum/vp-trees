@@ -43,15 +43,15 @@ function"
   "Pick a random value from a list and return this value and a new
 list with this value removed."
   (let ((idx (random (length list))))
-    (labels ((pick-random% (list acc n)
+    (labels ((%pick-random (list acc n)
                (destructuring-bind (car . cdr) list
                  (if (= n idx)
                      (values car (nconc acc cdr))
-                     (pick-random%
+                     (%pick-random
                       cdr
                       (cons car acc)
                       (1+ n))))))
-      (pick-random% list nil 0))))
+      (%pick-random list nil 0))))
 
 (sera:defstruct-read-only
     (vp-node
