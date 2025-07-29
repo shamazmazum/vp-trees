@@ -126,23 +126,24 @@ the returned items are necessarily the closest items to @c(item)."
                         (item-center-dist
                          (funcall distance item
                                   (funcall key center))))
-                   (when (<= item-center-dist threshold)
-                     (push center acc)
-                     (incf n))
-                   (if (not (vp-node-has-children-p subtree))
-                       (values acc n)
-                       (let* ((radius (vp-node-radius subtree))
-                              (min-thr (- radius threshold))
-                              (max-thr (+ radius threshold)))
-                         (cond
-                           ((< item-center-dist min-thr)
-                            (%go (vp-node-inner subtree) acc n))
-                           ((> item-center-dist max-thr)
-                            (%go (vp-node-outer subtree) acc n))
-                           (t
-                            (multiple-value-call #'%go
-                              (vp-node-inner subtree)
-                              (%go (vp-node-outer subtree) acc n))))))))))
+                   (multiple-value-bind (acc n)
+                       (if (<= item-center-dist threshold)
+                           (values (cons center acc) (1+ n))
+                           (values acc n))
+                     (if (not (vp-node-has-children-p subtree))
+                         (values acc n)
+                         (let* ((radius (vp-node-radius subtree))
+                                (min-thr (- radius threshold))
+                                (max-thr (+ radius threshold)))
+                           (cond
+                             ((< item-center-dist min-thr)
+                              (%go (vp-node-inner subtree) acc n))
+                             ((> item-center-dist max-thr)
+                              (%go (vp-node-outer subtree) acc n))
+                             (t
+                              (multiple-value-call #'%go
+                                (vp-node-inner subtree)
+                                (%go (vp-node-outer subtree) acc n)))))))))))
     (nth-value 0 (%go tree nil 0))))
 
 (sera:-> flatten (vp-tree) (values list &optional))
@@ -172,22 +173,23 @@ element of the tree.."
                         (item-center-dist
                          (funcall distance item
                                   (funcall key center))))
-                   (when (< item-center-dist current-dist)
-                     (setq current-dist item-center-dist
-                           current-best center))
-                   (if (not (vp-node-has-children-p subtree))
-                       (values current-best current-dist)
-                       (let* ((radius (vp-node-radius subtree))
-                              (min-thr (- radius current-dist))
-                              (max-thr (+ radius current-dist)))
-                         (cond
-                           ((< item-center-dist min-thr)
-                            (%go (vp-node-inner subtree) current-best current-dist))
-                           ((> item-center-dist max-thr)
-                            (%go (vp-node-outer subtree) current-best current-dist))
-                           (t
-                            (multiple-value-call #'%go
-                              (vp-node-outer subtree)
-                              (%go (vp-node-inner subtree)
-                                   current-best current-dist))))))))))
+                   (multiple-value-bind (current-dist current-best)
+                       (if (< item-center-dist current-dist)
+                           (values item-center-dist center)
+                           (values current-dist current-best))
+                     (if (not (vp-node-has-children-p subtree))
+                         (values current-best current-dist)
+                         (let* ((radius (vp-node-radius subtree))
+                                (min-thr (- radius current-dist))
+                                (max-thr (+ radius current-dist)))
+                           (cond
+                             ((< item-center-dist min-thr)
+                              (%go (vp-node-inner subtree) current-best current-dist))
+                             ((> item-center-dist max-thr)
+                              (%go (vp-node-outer subtree) current-best current-dist))
+                             (t
+                              (multiple-value-call #'%go
+                                (vp-node-outer subtree)
+                                (%go (vp-node-inner subtree)
+                                     current-best current-dist)))))))))))
     (%go tree nil ff:single-float-positive-infinity)))
