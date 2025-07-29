@@ -7,7 +7,7 @@
     :serial t
     :components ((:file "src/package")
                  (:file "src/vp-trees"))
-    :depends-on (:serapeum :float-features)
+    :depends-on (:serapeum :alexandria :float-features)
     :in-order-to ((test-op (load-op "vp-trees/tests")))
     :perform (test-op (op system)
                       (declare (ignore op system))

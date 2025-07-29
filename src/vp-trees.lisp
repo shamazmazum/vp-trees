@@ -1,32 +1,31 @@
 (in-package :vp-trees)
 
-(sera:-> divide-list
-         (list (sera:-> (t) (values boolean &optional)))
-         (values list list &optional))
+(sera:-> divide-list (list (sera:-> (t) (values boolean &optional)))
+         (values list list alex:non-negative-fixnum alex:non-negative-fixnum &optional))
 (defun divide-list (list predicate)
   "Divide a set in two halves depending on the value of predicate
 function"
-  (let (left right)
-    (mapc
-     (lambda (x)
-       (if (funcall predicate x)
-           (push x left)
+  (loop with nleft  fixnum = 0
+        with nright fixnum = 0
+        with left  = nil
+        with right = nil
+        for x in list do
+        (cond
+          ((funcall predicate x)
+           (incf nleft)
+           (push x left))
+          (t
+           (incf nright)
            (push x right)))
-     list)
-    (values left right)))
+        finally (return (values left right nleft nright))))
 
 (defun median (list &optional (nleft 0) (nright 0))
   "Return median value for a list"
-  (destructuring-bind (first . rest)
-      list
-    (multiple-value-bind (left-set right-set)
-        (divide-list
-         rest
-         (lambda (x) (< x first)))
-      (let* ((n-left-set  (length left-set))
-             (n-right-set (length right-set))
-             (nleft-upd  (+ nleft  n-left-set))
-             (nright-upd (+ nright n-right-set)))
+  (destructuring-bind (first . rest) list
+    (multiple-value-bind (left-set right-set n-left-set n-right-set)
+        (divide-list rest (lambda (x) (< x first)))
+      (let ((nleft-upd  (+ nleft  n-left-set))
+            (nright-upd (+ nright n-right-set)))
         (cond
           ((and (> nleft-upd nright-upd)
                 (not (zerop n-left-set)))
@@ -36,8 +35,7 @@ function"
            (median right-set (1+ nleft-upd) nright))
           (t first))))))
 
-(sera:-> pick-random
-         (list)
+(sera:-> pick-random (list)
          (values t list &optional))
 (defun pick-random (list)
   "Pick a random value from a list and return this value and a new
@@ -85,7 +83,7 @@ function @c(distance). Optional @c(key) function can be specified as a
 mapping between elements in @c(list) and elements in your metric
 space, so @c(ρ(x,y) = distance (key(x), key(y))) where x and y are in
 the @c(list)."
-  (if (<= (length list) 1)
+  (if (null (cdr list))
       (vp-node (first list) 0 nil nil)
       (multiple-value-bind (center rest)
           (pick-random list)
