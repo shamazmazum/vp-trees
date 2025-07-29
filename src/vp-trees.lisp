@@ -147,16 +147,12 @@ the following way: @c(ρ(x,y) = distance (key(x), key(y)))."
 (defun flatten (tree)
   "Deconstruct VP-tree back into a list. The order of elements in the
 original list is not preserved."
-  (let (list)
-    (labels ((%flatten! (node)
-               (when node
-                 (let ((center (vp-node-center node)))
-                   (push center list)
-                   (unless (vp-node-leaf-p node)
-                     (%flatten! (vp-node-inner node))
-                     (%flatten! (vp-node-outer node)))))))
-      (%flatten! tree))
-    list))
+  (labels ((%go (node acc)
+             (if (null node) acc
+                 (%go (vp-node-outer node)
+                      (%go (vp-node-inner node)
+                           (cons (vp-node-center node) acc))))))
+      (%go tree nil)))
 
 (sera:-> nearest-neighbor (vp-tree t metric &key (:key function))
          (values t real &optional))
