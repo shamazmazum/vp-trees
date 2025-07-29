@@ -63,8 +63,7 @@ list with this value removed."
   (inner  :type (or vp-node null))
   (outer  :type (or vp-node null)))
 
-(sera:-> vp-node-leaf-p
-         (vp-node)
+(sera:-> vp-node-leaf-p (vp-node)
          (values boolean &optional))
 (defun vp-node-leaf-p (node)
   "True if this node is a leaf"
@@ -74,8 +73,7 @@ list with this value removed."
 (deftype metric ()
   '(sera:-> (t t) (values (real 0) &optional)))
 
-(sera:-> make-vp-tree
-         (list metric &key (:key function))
+(sera:-> make-vp-tree (list metric &key (:key function))
          (values vp-node &optional))
 (defun make-vp-tree (list distance &key (key #'identity))
   "Make vantage point tree from a set @c(list) using a distance
