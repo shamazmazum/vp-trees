@@ -65,15 +65,6 @@ list with this value removed."
 
 (deftype vp-tree () '(or null vp-node))
 
-(sera:-> vp-node-leaf-p (vp-tree)
-         (values boolean &optional))
-(declaim (inline vp-node-leaf-p))
-(defun vp-node-leaf-p (node)
-  "True if this node is a leaf"
-  (or (null node)
-      (and (null (vp-node-inner node))
-           (null (vp-node-outer node)))))
-
 (declaim (inline vp-node-has-children-p))
 (defun vp-node-has-children-p (node)
   (or (vp-node-inner node)
@@ -165,10 +156,9 @@ original list is not preserved."
 space with @c(distance) as a metric function. Optional @c(key)
 function can be used to calculate a distance between two objects in
 the following way: @c(ρ(x,y) = distance (key(x), key(y)))."
-  (let ((current-dist ff:single-float-positive-infinity)
-        current-best)
-    (labels ((%search (subtree)
-               (when subtree
+  (labels ((%go (subtree current-best current-dist)
+             (if (null subtree)
+                 (values current-best current-dist)
                  (let* ((center (vp-node-center subtree))
                         (item-center-dist
                          (funcall distance item
@@ -176,16 +166,19 @@ the following way: @c(ρ(x,y) = distance (key(x), key(y)))."
                    (when (< item-center-dist current-dist)
                      (setq current-dist item-center-dist
                            current-best center))
-                   (unless (vp-node-leaf-p subtree)
-                     (let* ((radius (vp-node-radius subtree))
-                            (min-thr (- radius current-dist))
-                            (max-thr (+ radius current-dist)))
-                       (when (< item-center-dist min-thr)
-                         (%search (vp-node-inner subtree)))
-                       (when (> item-center-dist max-thr)
-                         (%search (vp-node-outer subtree)))
-                       (when (< min-thr item-center-dist max-thr)
-                         (%search (vp-node-inner subtree))
-                         (%search (vp-node-outer subtree)))))))))
-      (%search tree)
-      (values current-best current-dist))))
+                   (if (not (vp-node-has-children-p subtree))
+                       (values current-best current-dist)
+                       (let* ((radius (vp-node-radius subtree))
+                              (min-thr (- radius current-dist))
+                              (max-thr (+ radius current-dist)))
+                         (cond
+                           ((< item-center-dist min-thr)
+                            (%go (vp-node-inner subtree) current-best current-dist))
+                           ((> item-center-dist max-thr)
+                            (%go (vp-node-outer subtree) current-best current-dist))
+                           (t
+                            (multiple-value-call #'%go
+                              (vp-node-outer subtree)
+                              (%go (vp-node-inner subtree)
+                                   current-best current-dist))))))))))
+    (%go tree nil ff:single-float-positive-infinity)))
