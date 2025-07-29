@@ -1,5 +1,12 @@
 # Changelog
 
+## Version 2.1
+
+* Improvement: More compact VP-tree representation
+* Improvement: Some docstring fixes
+* Improvement: FIND now has :MAX argument to restrict the number of returned
+  items.
+
 ## Version 2.0
 
 * Incompatible change: `items-in-ball` is renamed to `find`.
