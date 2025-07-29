@@ -65,7 +65,7 @@ list with this value removed."
 
 (deftype vp-tree () '(or null vp-node))
 
-(sera:-> vp-node-leaf-p (vp-node)
+(sera:-> vp-node-leaf-p (vp-tree)
          (values boolean &optional))
 (declaim (inline vp-node-leaf-p))
 (defun vp-node-leaf-p (node)
@@ -73,6 +73,11 @@ list with this value removed."
   (or (null node)
       (and (null (vp-node-inner node))
            (null (vp-node-outer node)))))
+
+(declaim (inline vp-node-has-children-p))
+(defun vp-node-has-children-p (node)
+  (or (vp-node-inner node)
+      (vp-node-outer node)))
 
 (deftype metric ()
   '(sera:-> (t t) (values (real 0) &optional)))
@@ -119,29 +124,27 @@ the @c(list)."
 metric space with @c(distance) as a metric function. Optional @c(key)
 function can be used to calculate a distance between two objects in
 the following way: @c(ρ(x,y) = distance (key(x), key(y)))."
-  (let (acc)
-    (labels ((%search (subtree)
-               (when subtree
+  (labels ((%go (subtree acc)
+             (if (null subtree) acc
                  (let* ((center (vp-node-center subtree))
                         (item-center-dist
                          (funcall distance item
-                                  (funcall key center))))
-                   (when (<= item-center-dist threshold)
-                     (push center acc))
-                   (unless (vp-node-leaf-p subtree)
-                     (let* ((radius (vp-node-radius subtree))
-                            (min-thr (- radius threshold))
-                            (max-thr (+ radius threshold)))
-                       (cond
-                         ((< item-center-dist min-thr)
-                          (%search (vp-node-inner subtree)))
-                         ((> item-center-dist max-thr)
-                          (%search (vp-node-outer subtree)))
-                         (t
-                          (%search (vp-node-inner subtree))
-                          (%search (vp-node-outer subtree))))))))))
-      (%search tree))
-    acc))
+                                  (funcall key center)))
+                        (acc (if (<= item-center-dist threshold)
+                                 (cons center acc) acc)))
+                   (if (not (vp-node-has-children-p subtree)) acc
+                       (let* ((radius (vp-node-radius subtree))
+                              (min-thr (- radius threshold))
+                              (max-thr (+ radius threshold)))
+                         (cond
+                           ((< item-center-dist min-thr)
+                            (%go (vp-node-inner subtree) acc))
+                           ((> item-center-dist max-thr)
+                            (%go (vp-node-outer subtree) acc))
+                           (t
+                            (%go (vp-node-inner subtree)
+                                 (%go (vp-node-outer subtree) acc))))))))))
+    (%go tree nil)))
 
 (sera:-> flatten (vp-tree) (values list &optional))
 (defun flatten (tree)
