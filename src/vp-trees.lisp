@@ -63,47 +63,55 @@ list with this value removed."
   (inner  :type (or vp-node null))
   (outer  :type (or vp-node null)))
 
+(deftype vp-tree () '(or null vp-node))
+
 (sera:-> vp-node-leaf-p (vp-node)
          (values boolean &optional))
+(declaim (inline vp-node-leaf-p))
 (defun vp-node-leaf-p (node)
   "True if this node is a leaf"
-  (and (null (vp-node-inner node))
-       (null (vp-node-outer node))))
+  (or (null node)
+      (and (null (vp-node-inner node))
+           (null (vp-node-outer node)))))
 
 (deftype metric ()
   '(sera:-> (t t) (values (real 0) &optional)))
 
 (sera:-> make-vp-tree (list metric &key (:key function))
-         (values vp-node &optional))
+         (values vp-tree &optional))
 (defun make-vp-tree (list distance &key (key #'identity))
   "Make vantage point tree from a set @c(list) using a distance
 function @c(distance). Optional @c(key) function can be specified as a
 mapping between elements in @c(list) and elements in your metric
 space, so @c(ρ(x,y) = distance (key(x), key(y))) where x and y are in
 the @c(list)."
-  (if (null (cdr list))
-      (vp-node (first list) 0 nil nil)
-      (multiple-value-bind (center rest)
-          (pick-random list)
-        (let ((median (median
-                       (mapcar
-                        (lambda (x)
-                          (funcall distance
-                                   (funcall key center)
-                                   (funcall key x)))
-                        rest))))
-          (multiple-value-bind (inner-set outer-set)
-              (divide-list
-               rest
-               (lambda (x) (< (funcall distance
-                                       (funcall key center)
-                                       (funcall key x))
-                              median)))
-            (vp-node center median
-                     (make-vp-tree inner-set distance :key key)
-                     (make-vp-tree outer-set distance :key key)))))))
+  (cond
+    ((null list)
+     nil)
+    ((null (cdr list))
+     (vp-node (first list) 0 nil nil))
+    (t
+     (multiple-value-bind (center rest)
+         (pick-random list)
+       (let ((median (median
+                      (mapcar
+                       (lambda (x)
+                         (funcall distance
+                                  (funcall key center)
+                                  (funcall key x)))
+                       rest))))
+         (multiple-value-bind (inner-set outer-set)
+             (divide-list
+              rest
+              (lambda (x) (< (funcall distance
+                                      (funcall key center)
+                                      (funcall key x))
+                             median)))
+           (vp-node center median
+                    (make-vp-tree inner-set distance :key key)
+                    (make-vp-tree outer-set distance :key key))))))))
 
-(sera:-> find (vp-node t (real 0) metric &key (:key function))
+(sera:-> find (vp-tree t (real 0) metric &key (:key function))
          (values list &optional))
 (defun find (tree item threshold distance &key (key #'identity))
   "Find all items in the tree @c(tree) closer to @c(item) than
@@ -113,36 +121,36 @@ function can be used to calculate a distance between two objects in
 the following way: @c(ρ(x,y) = distance (key(x), key(y)))."
   (let (acc)
     (labels ((%search (subtree)
-               (let ((center (vp-node-center subtree)))
-                 (when center
-                   (let ((item-center-dist
-                          (funcall distance item
-                                   (funcall key center))))
-                     (when (<= item-center-dist threshold)
-                       (push center acc))
-                     (unless (vp-node-leaf-p subtree)
-                       (let* ((radius (vp-node-radius subtree))
-                              (min-thr (- radius threshold))
-                              (max-thr (+ radius threshold)))
-                         (cond
-                           ((< item-center-dist min-thr)
-                            (%search (vp-node-inner subtree)))
-                           ((> item-center-dist max-thr)
-                            (%search (vp-node-outer subtree)))
-                           (t
-                            (%search (vp-node-inner subtree))
-                            (%search (vp-node-outer subtree)))))))))))
+               (when subtree
+                 (let* ((center (vp-node-center subtree))
+                        (item-center-dist
+                         (funcall distance item
+                                  (funcall key center))))
+                   (when (<= item-center-dist threshold)
+                     (push center acc))
+                   (unless (vp-node-leaf-p subtree)
+                     (let* ((radius (vp-node-radius subtree))
+                            (min-thr (- radius threshold))
+                            (max-thr (+ radius threshold)))
+                       (cond
+                         ((< item-center-dist min-thr)
+                          (%search (vp-node-inner subtree)))
+                         ((> item-center-dist max-thr)
+                          (%search (vp-node-outer subtree)))
+                         (t
+                          (%search (vp-node-inner subtree))
+                          (%search (vp-node-outer subtree))))))))))
       (%search tree))
     acc))
 
-(sera:-> flatten (vp-node) (values list &optional))
+(sera:-> flatten (vp-tree) (values list &optional))
 (defun flatten (tree)
-  "Deconstruct VP tree back into list. The order of elements in the
+  "Deconstruct VP-tree back into a list. The order of elements in the
 original list is not preserved."
   (let (list)
     (labels ((%flatten! (node)
-               (let ((center (vp-node-center node)))
-                 (when center
+               (when node
+                 (let ((center (vp-node-center node)))
                    (push center list)
                    (unless (vp-node-leaf-p node)
                      (%flatten! (vp-node-inner node))
@@ -150,7 +158,7 @@ original list is not preserved."
       (%flatten! tree))
     list))
 
-(sera:-> nearest-neighbor (vp-node t metric &key (:key function))
+(sera:-> nearest-neighbor (vp-tree t metric &key (:key function))
          (values t real &optional))
 (defun nearest-neighbor (tree item distance &key (key #'identity))
   "Return element in the @c(tree) which is the closest element to
@@ -161,24 +169,24 @@ the following way: @c(ρ(x,y) = distance (key(x), key(y)))."
   (let ((current-dist ff:single-float-positive-infinity)
         current-best)
     (labels ((%search (subtree)
-               (let ((center (vp-node-center subtree)))
-                 (when center
-                   (let ((item-center-dist
-                          (funcall distance item
-                                   (funcall key center))))
-                     (when (< item-center-dist current-dist)
-                       (setq current-dist item-center-dist
-                             current-best center))
-                     (unless (vp-node-leaf-p subtree)
-                       (let* ((radius (vp-node-radius subtree))
-                              (min-thr (- radius current-dist))
-                              (max-thr (+ radius current-dist)))
-                         (when (< item-center-dist min-thr)
-                           (%search (vp-node-inner subtree)))
-                         (when (> item-center-dist max-thr)
-                           (%search (vp-node-outer subtree)))
-                         (when (< min-thr item-center-dist max-thr)
-                           (%search (vp-node-inner subtree))
-                           (%search (vp-node-outer subtree))))))))))
+               (when subtree
+                 (let* ((center (vp-node-center subtree))
+                        (item-center-dist
+                         (funcall distance item
+                                  (funcall key center))))
+                   (when (< item-center-dist current-dist)
+                     (setq current-dist item-center-dist
+                           current-best center))
+                   (unless (vp-node-leaf-p subtree)
+                     (let* ((radius (vp-node-radius subtree))
+                            (min-thr (- radius current-dist))
+                            (max-thr (+ radius current-dist)))
+                       (when (< item-center-dist min-thr)
+                         (%search (vp-node-inner subtree)))
+                       (when (> item-center-dist max-thr)
+                         (%search (vp-node-outer subtree)))
+                       (when (< min-thr item-center-dist max-thr)
+                         (%search (vp-node-inner subtree))
+                         (%search (vp-node-outer subtree)))))))))
       (%search tree)
       (values current-best current-dist))))
