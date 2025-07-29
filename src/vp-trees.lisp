@@ -107,35 +107,43 @@ the @c(list)."
                     (make-vp-tree inner-set distance :key key)
                     (make-vp-tree outer-set distance :key key))))))))
 
-(sera:-> find (vp-tree t (real 0) metric &key (:key function))
+(sera:-> find (vp-tree t (real 0) metric
+                       &key (:key function) (:max alex:positive-fixnum))
          (values list &optional))
-(defun find (tree item threshold distance &key (key #'identity))
+(defun find (tree item threshold distance &key (key #'identity) (max most-positive-fixnum))
   "Find all items in the tree @c(tree) closer to @c(item) than
 @c(threshold). @c(item) and elements of the tree must belong to a
 metric space with @c(distance) as a metric function. Optional @c(key)
 function can be used to calculate a distance between two objects in
-the following way: @c(ρ(x,y) = distance (key(x), key(y)))."
-  (labels ((%go (subtree acc)
-             (if (null subtree) acc
+the following way: @c(ρ(x,y) = distance (x, key(y))), @c(y) being an
+element of the tree. Optionally @c(max) can be specified to return no
+more than that number of items. In this case it is not guaranteed that
+the returned items are necessarily the closest items to @c(item)."
+  (labels ((%go (subtree acc n)
+             (if (or (null subtree) (= n max))
+                 (values acc n)
                  (let* ((center (vp-node-center subtree))
                         (item-center-dist
                          (funcall distance item
-                                  (funcall key center)))
-                        (acc (if (<= item-center-dist threshold)
-                                 (cons center acc) acc)))
-                   (if (not (vp-node-has-children-p subtree)) acc
+                                  (funcall key center))))
+                   (when (<= item-center-dist threshold)
+                     (push center acc)
+                     (incf n))
+                   (if (not (vp-node-has-children-p subtree))
+                       (values acc n)
                        (let* ((radius (vp-node-radius subtree))
                               (min-thr (- radius threshold))
                               (max-thr (+ radius threshold)))
                          (cond
                            ((< item-center-dist min-thr)
-                            (%go (vp-node-inner subtree) acc))
+                            (%go (vp-node-inner subtree) acc n))
                            ((> item-center-dist max-thr)
-                            (%go (vp-node-outer subtree) acc))
+                            (%go (vp-node-outer subtree) acc n))
                            (t
-                            (%go (vp-node-inner subtree)
-                                 (%go (vp-node-outer subtree) acc))))))))))
-    (%go tree nil)))
+                            (multiple-value-call #'%go
+                              (vp-node-inner subtree)
+                              (%go (vp-node-outer subtree) acc n))))))))))
+    (nth-value 0 (%go tree nil 0))))
 
 (sera:-> flatten (vp-tree) (values list &optional))
 (defun flatten (tree)
@@ -155,7 +163,8 @@ original list is not preserved."
 @c(item). @c(item) and elements of the tree must belong to a metric
 space with @c(distance) as a metric function. Optional @c(key)
 function can be used to calculate a distance between two objects in
-the following way: @c(ρ(x,y) = distance (key(x), key(y)))."
+the following way: @c(ρ(x,y) = distance (x, key(y))), @c(y) being an
+element of the tree.."
   (labels ((%go (subtree current-best current-dist)
              (if (null subtree)
                  (values current-best current-dist)
